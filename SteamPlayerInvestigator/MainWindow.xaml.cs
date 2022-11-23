@@ -4,6 +4,28 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Text.Json;
 
+/*
+Thu: 
+- Make UI work with data (Input)
+- Add Database (in VS)
+
+Fri
+- Insert into DB
+- Get Friends data, add to db, seutp innerjoins
+
+Sat
+- Insert Friends data into DB and setup inner joins
+
+Sun--Mon
+- Caching
+- Make Output Screen
+- Make UI work with data (Output screen)
+
+Tue--Thu
+Alg
+
+*/
+
 namespace SteamPlayerInvestigator
 {
     /// <summary>
