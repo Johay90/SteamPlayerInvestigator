@@ -18,7 +18,7 @@ namespace SteamPlayerInvestigator
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            string steamID = "76561198054022028";
+            string steamID = TextBoxSteamID.Text;
             string url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=7E7C3A26841681369678AE28CDF62901&steamids=" + steamID;
             using (var wb = new WebClient())
             {
