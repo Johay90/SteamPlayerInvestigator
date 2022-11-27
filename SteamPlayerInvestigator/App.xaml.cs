@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.Windows;
 
 namespace SteamPlayerInvestigator
@@ -41,8 +36,25 @@ namespace SteamPlayerInvestigator
             public List<Player> players { get; set; }
         }
 
-        public class Root
+        public class PlayerData
         {
             public Response response { get; set; }
+        }
+
+        public class Friend
+        {
+            public string steamid { get; set; }
+            public string relationship { get; set; }
+            public int friend_since { get; set; }
+        }
+
+        public class Friendslist
+        {
+            public List<Friend> friends { get; set; }
+        }
+
+        public class FriendData
+        {
+            public Friendslist friendslist { get; set; }
         }
 }
