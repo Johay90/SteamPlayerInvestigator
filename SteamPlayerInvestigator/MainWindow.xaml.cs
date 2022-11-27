@@ -9,13 +9,14 @@ using System.Diagnostics;
 
 /*
 
-Sun:
-Add to DB
-Setup innerjoins
-
 Mon;
+
+Make friends DB
+Insert friends into DB
+Setup innerjoins (to check for banned accounts)
+
 Caching
-Iutpuut screen
+Input screen
 Make UI work with data (output)
 
 Tue--Thu
@@ -197,11 +198,23 @@ namespace SteamPlayerInvestigator
             if (friendDeserialized.friendslist.friends.Count > 0)
             {
                 Debug.WriteLine("Starting friend loop");
-                
+
+                // get friend data
                 foreach (Friend friend in friendDeserialized.friendslist.friends)
                 {
                     Player friendPlayer = await playerAPICall(steamAPIKey, friend.steamid);
                     InsertData(friendPlayer);
+                }
+                
+                // get friends of friends
+                foreach (Friend friend in friendDeserialized.friendslist.friends)
+                {
+                    FriendData friendOfFriendDeserialized = await friendAPICall(steamAPIKey, friend.steamid);
+                    foreach (Friend friendOfFriend in friendOfFriendDeserialized.friendslist.friends)
+                    {
+                        Player friendOfFriendPlayer = await playerAPICall(steamAPIKey, friendOfFriend.steamid);
+                        InsertData(friendOfFriendPlayer);
+                    }
                 }
             }
             Debug.WriteLine("Finished");
