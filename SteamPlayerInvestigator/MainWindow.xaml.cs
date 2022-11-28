@@ -6,6 +6,10 @@ using System.Text.Json;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using SteamWebAPI2.Utilities;
+using SteamWebAPI2.Interfaces;
+using System.Net.Http;
+using Steam.Models.SteamCommunity;
 
 /*
 
@@ -38,7 +42,7 @@ namespace SteamPlayerInvestigator
             InitializeComponent();
         }
 
-        private static void InsertData(Player player)
+        private static void InsertData(PlayerSummaryModel player)
         {
             SqlConnection con =
                 new SqlConnection(
@@ -46,106 +50,59 @@ namespace SteamPlayerInvestigator
             SqlCommand cmd = new SqlCommand();
             cmd.CommandType = CommandType.Text;
             cmd.CommandText =
-                "INSERT dbo.users (steamid, communityvisibilitystate, profilestate, personaname, profileurl, avatar, avatarmedium, avatarfull, avatarhash, personastate, realname, primaryclanid, timecreated, personastateflags, loccountrycode, locstatecode, loccityid) VALUES (@steamid, @communityvisibilitystate, @profilestate, @personaname, @profileurl, @avatar, @avatarmedium, @avatarfull, @avatarhash, @personastate, @realname, @primaryclanid, @timecreated, @personastateflags, @loccountrycode, @locstatecode, @loccityid)";
+                "INSERT dbo.users (steamid, communityvisibilitystate, profilestate, personaname, profileurl, avatar, avatarmedium, avatarfull, personastate, realname, primaryclanid, timecreated, loccountrycode, locstatecode, loccityid) VALUES (@steamid, @communityvisibilitystate, @profilestate, @personaname, @profileurl, @avatar, @avatarmedium, @avatarfull, @personastate, @realname, @primaryclanid, @timecreated, @loccountrycode, @locstatecode, @loccityid)";
 
-            // ints (don't need null checks, will return 0 or 1)
-            cmd.Parameters.AddWithValue("@steamid", player.steamid);
-            cmd.Parameters.AddWithValue("@communityvisibilitystate", player.communityvisibilitystate);
-            cmd.Parameters.AddWithValue("@profilestate", player.profilestate);
-            cmd.Parameters.AddWithValue("@personastate", player.personastate);
-            cmd.Parameters.AddWithValue("@timecreated", player.timecreated);
-            cmd.Parameters.AddWithValue("@personastateflags", player.personastateflags);
-            cmd.Parameters.AddWithValue("@loccityid", player.loccityid);
+            // ints (don't need null checks)
+            cmd.Parameters.Add("@steamid", SqlDbType.BigInt).Value = Convert.ToInt64(player.SteamId);
+            cmd.Parameters.Add("@profilestate", SqlDbType.Int).Value = Convert.ToInt32(player.ProfileState);
+            cmd.Parameters.Add("@loccityid", SqlDbType.Int).Value = Convert.ToInt32(player.CityCode);
+            cmd.Parameters.AddWithValue("@timecreated", player.AccountCreatedDate);
 
-            // null checks on strings/varchars
-            if (player.personaname != null)
-            {
-                cmd.Parameters.AddWithValue("@personaname", player.personaname);
-            }
-            else
-            {
-                cmd.Parameters.AddWithValue("@personaname", DBNull.Value);
-            }
+            // strings
+            // null checks
+            cmd.Parameters.AddWithValue("@communityvisibilitystate", player.ProfileVisibility);
+            cmd.Parameters.AddWithValue("@personastate", player.UserStatus); 
+            cmd.Parameters.AddWithValue("@personaname", player.Nickname);
+            cmd.Parameters.AddWithValue("@profileurl", player.ProfileUrl);
+            cmd.Parameters.AddWithValue("@avatar", player.AvatarUrl);
+            cmd.Parameters.AddWithValue("@avatarmedium", player.AvatarMediumUrl);
+            cmd.Parameters.AddWithValue("@avatarfull", player.AvatarFullUrl);
 
-            if (player.profileurl != null)
-            {
-                cmd.Parameters.AddWithValue("@profileurl", player.avatar);
-            }
-            else
-            {
-                cmd.Parameters.AddWithValue("@profileurl", DBNull.Value);
-            }
-
-            if (player.avatar != null)
-            {
-                cmd.Parameters.AddWithValue("@avatar", player.avatar);
-            }
-            else
-            {
-                cmd.Parameters.AddWithValue("@avatar", DBNull.Value);
-            }
-
-            if (player.avatarmedium != null)
-            {
-                cmd.Parameters.AddWithValue("@avatarmedium", player.avatarmedium);
-            }
-            else
-            {
-                cmd.Parameters.AddWithValue("@avatarmedium", DBNull.Value);
-            }
-
-            if (player.avatarfull != null)
-            {
-                cmd.Parameters.AddWithValue("@avatarfull", player.avatarfull);
-            }
-            else
-            {
-                cmd.Parameters.AddWithValue("@avatarfull", DBNull.Value);
-            }
-
-            if (player.avatarhash != null)
-            {
-                cmd.Parameters.AddWithValue("@avatarhash", player.avatarhash);
-            }
-            else
-            {
-                cmd.Parameters.AddWithValue("@avatarhash", DBNull.Value);
-            }
-
-            if (player.realname != null)
-            {
-                cmd.Parameters.AddWithValue("@realname", player.realname);
-            }
-            else
+            // some of these can be null
+            if (player.RealName == null)
             {
                 cmd.Parameters.AddWithValue("@realname", DBNull.Value);
             }
-
-            if (player.primaryclanid != null)
-            {
-                cmd.Parameters.AddWithValue("@primaryclanid", player.primaryclanid);
-            }
             else
+            {
+                cmd.Parameters.AddWithValue("@realname", player.RealName);
+            }
+
+            if (player.PrimaryGroupId == null)
             {
                 cmd.Parameters.AddWithValue("@primaryclanid", DBNull.Value);
             }
-
-            if (player.loccountrycode != null)
-            {
-                cmd.Parameters.AddWithValue("@loccountrycode", player.loccountrycode);
-            }
             else
+            {
+                cmd.Parameters.AddWithValue("@primaryclanid", player.PrimaryGroupId);
+            }
+
+            if (player.CountryCode == null)
             {
                 cmd.Parameters.AddWithValue("@loccountrycode", DBNull.Value);
             }
-
-            if (player.locstatecode != null)
+            else
             {
-                cmd.Parameters.AddWithValue("@locstatecode", player.locstatecode);
+                cmd.Parameters.AddWithValue("@loccountrycode", player.CountryCode);
+            }
+
+            if (player.StateCode == null)
+            {
+                cmd.Parameters.AddWithValue("@locstatecode", DBNull.Value);
             }
             else
             {
-                cmd.Parameters.AddWithValue("@locstatecode", DBNull.Value);
+                cmd.Parameters.AddWithValue("@locstatecode", player.StateCode);
             }
 
             cmd.Connection = con;
@@ -177,22 +134,34 @@ namespace SteamPlayerInvestigator
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            string steamID = TextBoxSteamID.Text;
+            // need to convert steamiD to ulong for steamInterface
+            ulong steamID = Convert.ToUInt64(TextBoxSteamID.Text);
             string steamAPIKey = "7E7C3A26841681369678AE28CDF62901";
+            
+            // factory to be used to generate various web interfaces
+            SteamWebInterfaceFactory webInterfaceFactory = new SteamWebInterfaceFactory(steamAPIKey);
+
+            // this will map to the ISteamUser endpoint
+            SteamUser steamInterface = webInterfaceFactory.CreateSteamWebInterface<SteamUser>(new HttpClient());
+
+
+            ISteamWebResponse<PlayerSummaryModel> playerSummaryResponse = await steamInterface.GetPlayerSummaryAsync(steamID);
+            PlayerSummaryModel playerSummaryData = playerSummaryResponse.Data;
+            InsertData(playerSummaryData);
+
+            Debug.WriteLine("Added player data.");
+
+
+            /*
 
             Debug.WriteLine("Starting API calls");
 
-            // get player data
+            
             Player player = await playerAPICall(steamAPIKey, steamID);
-
-            Debug.WriteLine("Got player data");
-
-            // get friend list
-            FriendData friendDeserialized = await friendAPICall(steamAPIKey, steamID);
-
-            Debug.WriteLine("Got friend list");
-
             InsertData(player);
+            Debug.WriteLine("Primary Player data inserted into database. SteamID: " + player.steamid);
+            
+            FriendData friendDeserialized = await friendAPICall(steamAPIKey, steamID);
 
             // ReSharper disable once InvertIf
             if (friendDeserialized.friendslist.friends.Count > 0)
@@ -204,9 +173,11 @@ namespace SteamPlayerInvestigator
                 {
                     Player friendPlayer = await playerAPICall(steamAPIKey, friend.steamid);
                     InsertData(friendPlayer);
+                    Debug.WriteLine("Friend data inserted into database. SteamID: " + friendPlayer.steamid);
                 }
-                
+
                 // get friends of friends
+                Debug.WriteLine("Starting friends of friends loop");
                 foreach (Friend friend in friendDeserialized.friendslist.friends)
                 {
                     FriendData friendOfFriendDeserialized = await friendAPICall(steamAPIKey, friend.steamid);
@@ -214,10 +185,13 @@ namespace SteamPlayerInvestigator
                     {
                         Player friendOfFriendPlayer = await playerAPICall(steamAPIKey, friendOfFriend.steamid);
                         InsertData(friendOfFriendPlayer);
+                        Debug.WriteLine("Friend of friend data inserted into database. SteamID: " + friendOfFriendPlayer.steamid);
                     }
                 }
             }
             Debug.WriteLine("Finished");
+
+            */
         }
     }
 }
