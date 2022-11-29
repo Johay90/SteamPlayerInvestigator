@@ -10,12 +10,10 @@ using SteamWebAPI2.Utilities;
 using SteamWebAPI2.Interfaces;
 using System.Net.Http;
 using Steam.Models.SteamCommunity;
-using System.Numerics;
 
 /*
 
 Mon;
-Caching
 Input screen
 Make UI work with data (output)
 
@@ -189,7 +187,6 @@ namespace SteamPlayerInvestigator
             con.Close();
         }
 
-        // TODO this doens't really need to be async, considering calling vac ban elsewhere so we can remove async from here
         private static async Task InsertDataAsync(PlayerSummaryModel player)
         {
             SqlConnection con =
@@ -277,7 +274,6 @@ namespace SteamPlayerInvestigator
             con.Close();
         }
 
-        // method insert into friends table
         private static void InsertFriends(ulong steamID, ulong friendID)
         {
             SqlConnection con =
@@ -301,7 +297,7 @@ namespace SteamPlayerInvestigator
         private async Task<PlayerSummaryModel> getPlayerInfo(SteamUser steamInterface, ulong steamID)
         {
             ISteamWebResponse<PlayerSummaryModel> playerSummaryResponse = await steamInterface.GetPlayerSummaryAsync(steamID);
-            return playerSummaryResponse == null ? null : playerSummaryResponse.Data;
+            return playerSummaryResponse?.Data;
         }
         
         private static async Task<IReadOnlyCollection<FriendModel>> getFriendList(SteamUser steamInterface, ulong steamID)
@@ -455,8 +451,34 @@ namespace SteamPlayerInvestigator
             cmd.CommandText =
                 "SELECT * FROM dbo.users INNER JOIN dbo.friends ON dbo.users.steamid = dbo.friends.friendswith WHERE dbo.users.banstatus = 1";
             cmd.Parameters.Add("@steamid", SqlDbType.BigInt).Value = Convert.ToInt64(steamID);
-            con.Open();
+
+            // put statement into PlayerSummaryModel datareader list
+            List<PlayerSummaryModel> players = new List<PlayerSummaryModel>();
             cmd.Connection = con;
+            con.Open();
+            SqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                // TODO missing some current db data
+                // TODO db also doens't insert all available data from playermodel
+                PlayerSummaryModel currPlayer = new PlayerSummaryModel
+                {
+                    SteamId = Convert.ToUInt64(reader["steamid"]),
+                    ProfileUrl = reader["profileurl"].ToString(),
+                    AvatarUrl = reader["avatar"].ToString(),
+                    AvatarMediumUrl = reader["avatarmedium"].ToString(),
+                    AvatarFullUrl = reader["avatarfull"].ToString(),
+                    RealName = reader["realname"].ToString(),
+                    PrimaryGroupId = reader["primaryclanid"].ToString(),
+                    AccountCreatedDate = Convert.ToDateTime(reader["timecreated"]),
+                    UserStatus = (UserStatus)Convert.ToInt32(reader["personastate"]),
+                    ProfileVisibility = (ProfileVisibility)Convert.ToInt32(reader["communityvisibilitystate"]),
+                };
+                players.Add(currPlayer);
+            }
+            con.Close();
+            
+            /*
             SqlDataReader reader = cmd.ExecuteReader();
             List<string> list = new List<string>();
             while (reader.Read())
@@ -464,6 +486,7 @@ namespace SteamPlayerInvestigator
                 list.Add(reader["friendswith"].ToString());
             }
             con.Close();
+            */
 
         }
     }
