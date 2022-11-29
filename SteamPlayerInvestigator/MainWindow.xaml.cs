@@ -36,7 +36,7 @@ namespace SteamPlayerInvestigator
             InitializeComponent();
         }
 
-        private void RemoveFriends(ulong steamid)
+        private static void RemoveFriends(ulong steamid)
         {
             SqlConnection con =
                 new SqlConnection(
@@ -70,7 +70,7 @@ namespace SteamPlayerInvestigator
 
         }
 
-        private bool UserExists(ulong steamID)
+        private static bool UserExists(ulong steamID)
         {
             SqlConnection con =
                 new SqlConnection(
@@ -82,7 +82,7 @@ namespace SteamPlayerInvestigator
             return reader.HasRows;
         }
 
-        private bool UserNeedsUpdate(ulong steamID)
+        private static bool UserNeedsUpdate(ulong steamID)
         {
             SqlConnection con =
                 new SqlConnection(
@@ -99,11 +99,8 @@ namespace SteamPlayerInvestigator
                 con.Close();
                 return true;
             }
-            else
-            {
-                con.Close();
-                return false;
-            }
+            con.Close();
+            return false;
         }
 
         private static async Task UpdateUserData(PlayerSummaryModel player)
@@ -119,15 +116,7 @@ namespace SteamPlayerInvestigator
             cmd.Parameters.Add("@loccityid", SqlDbType.Int).Value = Convert.ToInt32(player.CityCode);
             cmd.Parameters.AddWithValue("@date_added", DateTime.Now);
             // check for valid datetime value
-            if (player.AccountCreatedDate <= DateTime.MinValue)
-            {
-                cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = DateTime.MinValue;
-            }
-            else
-            {
-                cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = player.AccountCreatedDate;
-            }
-
+            cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = player.AccountCreatedDate <= DateTime.MinValue ? DateTime.MinValue : player.AccountCreatedDate;
             cmd.Parameters.AddWithValue("@communityvisibilitystate", player.ProfileVisibility);
             cmd.Parameters.AddWithValue("@personastate", player.UserStatus); 
             cmd.Parameters.AddWithValue("@personaname", player.Nickname);
@@ -173,7 +162,7 @@ namespace SteamPlayerInvestigator
                 cmd.Parameters.AddWithValue("@locstatecode", player.StateCode);
             }
             
-            if (await checkVACBan(player.SteamId))
+            if (await CheckVACBan(player.SteamId))
             {
                 cmd.Parameters.AddWithValue("@banstatus", 1);
             }
@@ -203,17 +192,7 @@ namespace SteamPlayerInvestigator
             cmd.Parameters.Add("@loccityid", SqlDbType.Int).Value = Convert.ToInt32(player.CityCode);
             cmd.Parameters.AddWithValue("@date_added", DateTime.Now);
             // check for valid datetime value
-            if (player.AccountCreatedDate <= DateTime.MinValue)
-            {
-                cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = DateTime.MinValue;
-            }
-            else
-            {
-                cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = player.AccountCreatedDate;
-            }
-
-            // strings
-            // null checks
+            cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = player.AccountCreatedDate <= DateTime.MinValue ? DateTime.MinValue : player.AccountCreatedDate;
             cmd.Parameters.AddWithValue("@communityvisibilitystate", player.ProfileVisibility);
             cmd.Parameters.AddWithValue("@personastate", player.UserStatus); 
             cmd.Parameters.AddWithValue("@personaname", player.Nickname);
@@ -221,8 +200,6 @@ namespace SteamPlayerInvestigator
             cmd.Parameters.AddWithValue("@avatar", player.AvatarUrl);
             cmd.Parameters.AddWithValue("@avatarmedium", player.AvatarMediumUrl);
             cmd.Parameters.AddWithValue("@avatarfull", player.AvatarFullUrl);
-
-            // some of these can be null
             if (player.RealName == null)
             {
                 cmd.Parameters.AddWithValue("@realname", DBNull.Value);
@@ -259,7 +236,7 @@ namespace SteamPlayerInvestigator
                 cmd.Parameters.AddWithValue("@locstatecode", player.StateCode);
             }
             
-            if (await checkVACBan(player.SteamId))
+            if (await CheckVACBan(player.SteamId))
             {
                 cmd.Parameters.AddWithValue("@banstatus", 1);
             }
@@ -267,7 +244,6 @@ namespace SteamPlayerInvestigator
             {
                 cmd.Parameters.AddWithValue("@banstatus", 0);
             }
-
             cmd.Connection = con;
             con.Open();
             cmd.ExecuteNonQuery();
@@ -294,13 +270,13 @@ namespace SteamPlayerInvestigator
             con.Close();
         }
 
-        private async Task<PlayerSummaryModel> getPlayerInfo(SteamUser steamInterface, ulong steamID)
+        private async Task<PlayerSummaryModel> getPlayerInfo(ISteamUser steamInterface, ulong steamID)
         {
             ISteamWebResponse<PlayerSummaryModel> playerSummaryResponse = await steamInterface.GetPlayerSummaryAsync(steamID);
             return playerSummaryResponse?.Data;
         }
         
-        private static async Task<IReadOnlyCollection<FriendModel>> getFriendList(SteamUser steamInterface, ulong steamID)
+        private static async Task<IReadOnlyCollection<FriendModel>> getFriendList(ISteamUser steamInterface, ulong steamID)
         {
             // exception handling for System.Net.Http.HttpRequestException
             try
@@ -315,7 +291,7 @@ namespace SteamPlayerInvestigator
             }
         }
 
-        private static async Task<bool> checkVACBan(ulong steamID)
+        private static async Task<bool> CheckVACBan(ulong steamID)
         {
             string steamAPIKey = "7E7C3A26841681369678AE28CDF62901";
             // factory to be used to generate various web interfaces
@@ -329,7 +305,7 @@ namespace SteamPlayerInvestigator
         }
 
         // TODO refactor this
-        private async Task AddFriendData(SteamUser steamInterface, ulong steamID)
+        private async Task AddFriendData(ISteamUser steamInterface, ulong steamID)
         {
             // get friend data
             // TODO add a check here to deal with hidden friend list (check fof insert)
@@ -456,7 +432,7 @@ namespace SteamPlayerInvestigator
             List<PlayerSummaryModel> players = new List<PlayerSummaryModel>();
             cmd.Connection = con;
             con.Open();
-            SqlDataReader reader = cmd.ExecuteReader();
+            SqlDataReader reader = await cmd.ExecuteReaderAsync();
             while (reader.Read())
             {
                 // TODO missing some current db data
@@ -472,21 +448,11 @@ namespace SteamPlayerInvestigator
                     PrimaryGroupId = reader["primaryclanid"].ToString(),
                     AccountCreatedDate = Convert.ToDateTime(reader["timecreated"]),
                     UserStatus = (UserStatus)Convert.ToInt32(reader["personastate"]),
-                    ProfileVisibility = (ProfileVisibility)Convert.ToInt32(reader["communityvisibilitystate"]),
+                    ProfileVisibility = (ProfileVisibility)Convert.ToInt32(reader["communityvisibilitystate"])
                 };
                 players.Add(currPlayer);
             }
             con.Close();
-            
-            /*
-            SqlDataReader reader = cmd.ExecuteReader();
-            List<string> list = new List<string>();
-            while (reader.Read())
-            {
-                list.Add(reader["friendswith"].ToString());
-            }
-            con.Close();
-            */
 
         }
     }
