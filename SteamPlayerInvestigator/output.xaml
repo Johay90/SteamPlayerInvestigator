@@ -1,0 +1,19 @@
+﻿<Window x:Class="SteamPlayerInvestigator.output"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SteamPlayerInvestigator"
+        mc:Ignorable="d"
+        Title="output" Height="450" Width="800">
+    <Grid Background="#FF2F353A">
+        <Label Content="Steam Player Investigator&#xA;" HorizontalAlignment="Center" Margin="0,31,0,0" VerticalAlignment="Top" FontSize="48" Background="Transparent" Foreground="White" Height="138" Width="544"/>
+        <Image HorizontalAlignment="Left" Height="100" Margin="10,10,0,0" VerticalAlignment="Top" Width="100" Source="/steam-logo-transparent.png"/>
+        <Label Content="Primary Account:" HorizontalAlignment="Left" Margin="40,169,0,0" VerticalAlignment="Top" FontSize="36" Foreground="White"/>
+        <Label Content="Secondary Account:" HorizontalAlignment="Left" Margin="40,243,0,0" VerticalAlignment="Top" FontSize="36" Foreground="White"/>
+        <Label x:Name="labelPercMsg" Content="Placeholder" HorizontalAlignment="Center" Margin="0,322,0,0" VerticalAlignment="Top" FontSize="22" Foreground="White"/>
+        <Label x:Name="labelPrimaryAccount" Content="Placeholder" HorizontalAlignment="Left" Margin="338,169,0,0" VerticalAlignment="Top" FontSize="36" Foreground="#FF888888"/>
+        <Label x:Name="labelSecondaryAccount" Content="Placeholder" HorizontalAlignment="Left" Margin="400,243,0,0" VerticalAlignment="Top" FontSize="36" Foreground="#FF888888"/>
+
+    </Grid>
+</Window>
