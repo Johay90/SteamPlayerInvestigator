@@ -87,17 +87,23 @@ namespace SteamPlayerInvestigator
                 }
                 else
                 {
-                    // ProfileUrl - check this and see or simularities in url
+                    // TODO need to check or null, or 0s (Basically check for blank records)
                     if (player.CityCode == primaryAccount.CityCode && player.CityCode != 0)
                     {
                         score += 1;
                     }
-                    // primary clan id
+                    if (player.CountryCode == primaryAccount.CountryCode)
+                    {
+                        score += 1;
+                    }
+                    if (player.StateCode == primaryAccount.StateCode)
+                    {
+                        score += 1;
+                    }
                     if (player.PrimaryGroupId == primaryAccount.PrimaryGroupId)
                     {
                         score += 1;
                     }
-                    // Compare string similarity between real names
                     if (player.RealName != null && primaryAccount.RealName != null)
                     {
                         if (player.RealName == primaryAccount.RealName)
@@ -110,6 +116,17 @@ namespace SteamPlayerInvestigator
                             {
                                 score += 1;
                             }
+                        }
+                    }
+                    if (player.Nickname == primaryAccount.Nickname)
+                    {
+                        score += 1;
+                    }
+                    else
+                    {
+                        if (StringSimilarity(player.Nickname, primaryAccount.Nickname) < 3)
+                        {
+                            score += 1;
                         }
                     }
                 }
@@ -381,13 +398,19 @@ namespace SteamPlayerInvestigator
 
             // this will map to the ISteamUser endpoint
             SteamUser steamInterface = webInterfaceFactory.CreateSteamWebInterface<SteamUser>(new HttpClient());
-            
+
             try
             {
-                ISteamWebResponse<IReadOnlyCollection<PlayerBansModel>> vacBanResponse = await steamInterface.GetPlayerBansAsync(steamID);
+                ISteamWebResponse<IReadOnlyCollection<PlayerBansModel>> vacBanResponse =
+                    await steamInterface.GetPlayerBansAsync(steamID);
                 return vacBanResponse.Data.First().NumberOfVACBans > 0;
             }
             catch (TaskCanceledException e)
+            {
+                Debug.WriteLine("Skipping current friend, thrown an error. Likely private data?");
+                return false;
+            }
+            catch (HttpRequestException e)
             {
                 Debug.WriteLine("Skipping current friend, thrown an error. Likely private data?");
                 return false;
@@ -401,8 +424,7 @@ namespace SteamPlayerInvestigator
                     @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\JMumm\OneDrive\Documents\Uni\Y3\Final_hons\Project\SteamPlayerInvestigator\SteamPlayerInvestigator\Database1.mdf;Integrated Security=True");
             SqlCommand cmd = new SqlCommand();
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText =
-                "SELECT * FROM dbo.users INNER JOIN dbo.friends ON dbo.users.steamid = dbo.friends.friendswith WHERE dbo.users.banstatus = 1";
+            cmd.CommandText = "SELECT * FROM dbo.users INNER JOIN dbo.friends ON dbo.users.steamid = dbo.friends.friendswith WHERE dbo.users.banstatus = 1";
             cmd.Parameters.Add("@steamid", SqlDbType.BigInt).Value = Convert.ToInt64(steamID);
 
             // put statement into PlayerSummaryModel datareader list
@@ -410,13 +432,9 @@ namespace SteamPlayerInvestigator
             cmd.Connection = con;
             con.Open();
             SqlDataReader reader = await cmd.ExecuteReaderAsync();
-            int score = 0;
             // add score to PlayerSummaryModel
             while (reader.Read())
             {
-                // TODO missing some current db data
-                // TODO db also doens't insert all available data from playermodel
-                // dynamiccly add score to PlayerSummaryModel object
 
                 PlayerSummaryModel currPlayer = new PlayerSummaryModel
                 {
@@ -431,8 +449,16 @@ namespace SteamPlayerInvestigator
                     UserStatus = (UserStatus)Convert.ToInt32(reader["personastate"]),
                     ProfileVisibility = (ProfileVisibility)Convert.ToInt32(reader["communityvisibilitystate"]),
                     Nickname = reader["personaname"].ToString(),
+                    ProfileState = (uint)Convert.ToInt32(reader["profilestate"]),
+                    CountryCode = reader["loccountrycode"].ToString(),
+                    StateCode = reader["locstatecode"].ToString(),
+                    CityCode = Convert.ToUInt32(reader["loccityid"].ToString()),
+
                 };
-                players.Add(currPlayer);
+                if (currPlayer.SteamId != steamID)
+                {
+                    players.Add(currPlayer);
+                }
             }
 
             con.Close();
@@ -511,6 +537,7 @@ namespace SteamPlayerInvestigator
                     else
                     {
                         Debug.WriteLine("Error, skipping current friend of friend list. Likely a private profile.");
+                        continue;
                     }
                 }
             }

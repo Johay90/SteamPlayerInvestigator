@@ -6,6 +6,7 @@ using System.Linq;
 using SteamWebAPI2.Utilities;
 using SteamWebAPI2.Interfaces;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Steam.Models.SteamCommunity;
 
 namespace SteamPlayerInvestigator
@@ -60,21 +61,25 @@ namespace SteamPlayerInvestigator
 
             PlayerSummaryModel primaryAccount = player;
             List<PlayerSummaryModel> players = await App.AvailableAccounts(player.SteamId);
-            Dictionary<PlayerSummaryModel, int> weightedPlayers = App.CalculateWeightedScores(players, primaryAccount);
+            Dictionary<PlayerSummaryModel, int> weightedPlayers = await App.CalculateWeightedScores(players, primaryAccount);
             
             // get player with top score
             PlayerSummaryModel topPlayer = weightedPlayers.Aggregate((l, r) => l.Value > r.Value ? l : r).Key;
+            // get top score value
+            int topScore = weightedPlayers.Aggregate((l, r) => l.Value > r.Value ? l : r).Value;
 
+            // TODO later on we want to max this a percentage, however, as we're in the early stages of development, we'll a raw top score value.
+            int maxScore = 7;
             // output window
             output outputWindow = new output();
             outputWindow.Show();
-            if (primaryAccount != null) outputWindow.labelPrimaryAccount.Content = primaryAccount.Nickname;
-            outputWindow.labelSecondaryAccount.Content = topPlayer.Nickname;
-            outputWindow.labelPercMsg.Content = "TODO";
+            if (primaryAccount != null) outputWindow.labelPrimaryAccount.Content = primaryAccount.Nickname + "(" + primaryAccount.SteamId + ")";
+            outputWindow.labelSecondaryAccount.Content = topPlayer.Nickname + "(" + topPlayer.SteamId + ")";
+            
+            double perc = (double)topScore / maxScore * 100;
+            outputWindow.labelPercMsg.Content = "This secondary account scored a total of " + perc + "%";
 
 
         }
-
-
     }
     }
