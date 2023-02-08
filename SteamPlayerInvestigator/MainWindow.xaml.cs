@@ -6,8 +6,8 @@ using System.Linq;
 using SteamWebAPI2.Utilities;
 using SteamWebAPI2.Interfaces;
 using System.Net.Http;
-using System.Threading.Tasks;
 using Steam.Models.SteamCommunity;
+using SteamPlayerInvestigator.Classes;
 
 namespace SteamPlayerInvestigator
 {
@@ -61,14 +61,13 @@ namespace SteamPlayerInvestigator
 
             PlayerSummaryModel primaryAccount = player;
             List<PlayerSummaryModel> players = await App.AvailableAccounts(player.SteamId);
-            Dictionary<PlayerSummaryModel, int> weightedPlayers = await App.CalculateWeightedScores(players, primaryAccount);
-            
-            // get player with top score
-            PlayerSummaryModel topPlayer = weightedPlayers.Aggregate((l, r) => l.Value > r.Value ? l : r).Key;
-            // get top score value
-            int topScore = weightedPlayers.Aggregate((l, r) => l.Value > r.Value ? l : r).Value;
+            List<WeightedPlayer> weightedPlayers = await App.CalculateWeightedScores(players, primaryAccount);
 
-            // TODO later on we want to max this a percentage, however, as we're in the early stages of development, we'll a raw top score value.
+            // get player with top score
+            PlayerSummaryModel topPlayer = weightedPlayers.Aggregate((l, r) => l.Score > r.Score ? l : r).Player;
+            // get top score value
+            int topScore = weightedPlayers.Aggregate((l, r) => l.Score > r.Score ? l : r).Score;
+
             int maxScore = 7;
             // output window
             output outputWindow = new output();
@@ -81,5 +80,6 @@ namespace SteamPlayerInvestigator
 
 
         }
+
     }
     }

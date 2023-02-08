@@ -10,6 +10,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
+using SteamPlayerInvestigator.Classes;
+using System.Reflection.Metadata;
 
 namespace SteamPlayerInvestigator
 {
@@ -18,10 +20,30 @@ namespace SteamPlayerInvestigator
     /// </summary>
     public partial class App : Application
     {
+        // factory to be used to generate various web interfaces
+        private const string SteamApiKey = "7E7C3A26841681369678AE28CDF62901";
+        private static readonly SteamWebInterfaceFactory WebInterfaceFactory = new SteamWebInterfaceFactory(SteamApiKey);
 
-        // TODO refactor these methods - Can be transferred into their own classes, and class methods. 
-        // They don't need to be static after reactor.
-        // will need to do this for unit testing purposes (plus cleaner code..).
+        // The string mostPlayedGame throws a System.InvalidOperationException
+
+        private static async Task<string> MostPlayedGame(ulong steamID)
+        {
+            PlayerService steamPlayerInterface = WebInterfaceFactory.CreateSteamWebInterface<PlayerService>();
+            ISteamWebResponse<RecentlyPlayedGamesResultModel> ownedGames =
+                await steamPlayerInterface.GetRecentlyPlayedGamesAsync(steamID);
+            RecentlyPlayedGamesResultModel gamesData = ownedGames.Data;
+
+            string mostPlayedGame = string.Empty;
+            if (gamesData.RecentlyPlayedGames.Any())
+            {
+                mostPlayedGame = gamesData.RecentlyPlayedGames
+                    .OrderByDescending(x => x.PlaytimeForever)
+                    .First()
+                    .Name;
+            }
+
+            return mostPlayedGame;
+        }
 
         //  Levenshtein Distance Algorithm for comparing names
         private static int StringSimilarity(string s, string t)
@@ -73,10 +95,9 @@ namespace SteamPlayerInvestigator
             return d[n, m];
         }
 
-        public static Dictionary<PlayerSummaryModel, int> CalculateWeightedScores(List<PlayerSummaryModel> players, PlayerSummaryModel primaryAccount)
-        {
-            // coudn't add property to PlayerSummaryModel, so I'm using an Dictionary for score
-            Dictionary<PlayerSummaryModel, int> weightedPlayers = new Dictionary<PlayerSummaryModel, int>();
+        public static async Task<List<WeightedPlayer>> CalculateWeightedScores(List<PlayerSummaryModel> players, PlayerSummaryModel primaryAccount) {
+            
+            List<WeightedPlayer> weightedPlayers = new List<WeightedPlayer>();
 
             foreach (PlayerSummaryModel player in players)
             {
@@ -100,10 +121,12 @@ namespace SteamPlayerInvestigator
                     {
                         score += 1;
                     }
+
                     if (player.PrimaryGroupId == primaryAccount.PrimaryGroupId)
                     {
                         score += 1;
                     }
+                    
                     if (player.RealName != null && primaryAccount.RealName != null)
                     {
                         if (player.RealName == primaryAccount.RealName)
@@ -129,8 +152,23 @@ namespace SteamPlayerInvestigator
                             score += 1;
                         }
                     }
+
+                    
+                    // some type of mine score here, will take an age otherwise. 
+                    // TODO add outputting somehow from this. Ie procesing x out of x.. 
+                    if (score >= 3){
+                        if (await MostPlayedGame(player.SteamId) == await MostPlayedGame(primaryAccount.SteamId))
+                        {
+                            score += 1;
+                        }
+                    }
+                    
+                    
+                    
+                    
+                    
                 }
-                weightedPlayers.Add(player, score);
+                weightedPlayers.Add(new WeightedPlayer(player, score));
             }
             return weightedPlayers;
         }
