@@ -11,6 +11,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using SteamPlayerInvestigator.Classes;
+using SteamWebAPI2.Models.SteamCommunity;
+
 
 namespace SteamPlayerInvestigator
 {
@@ -20,17 +22,19 @@ namespace SteamPlayerInvestigator
     public partial class App : Application
     {
         // factory to be used to generate various web interfaces
-        private const string SteamApiKey = "7E7C3A26841681369678AE28CDF62901";
-        private static readonly SteamWebInterfaceFactory WebInterfaceFactory = new SteamWebInterfaceFactory(SteamApiKey);
-        public static List<WeightedPlayer> WeightedPlayers = new List<WeightedPlayer>();
+        private const string SteamApiKey = Credentials.ApiKey;
 
-        // The string mostPlayedGame throws a System.InvalidOperationException
+        private static readonly SteamWebInterfaceFactory
+            WebInterfaceFactory = new SteamWebInterfaceFactory(SteamApiKey);
+
+        public static List<WeightedPlayer> WeightedPlayers = new List<WeightedPlayer>();
 
         private static async Task<string> MostPlayedGame(ulong steamID)
         {
             PlayerService steamPlayerInterface = WebInterfaceFactory.CreateSteamWebInterface<PlayerService>();
             // get top played games
-            ISteamWebResponse<OwnedGamesResultModel> ownedGames = await steamPlayerInterface.GetOwnedGamesAsync(steamID);
+            ISteamWebResponse<OwnedGamesResultModel>
+                ownedGames = await steamPlayerInterface.GetOwnedGamesAsync(steamID);
             OwnedGamesResultModel gamesData = ownedGames.Data;
 
             string mostPlayedGame = string.Empty;
@@ -61,7 +65,7 @@ namespace SteamPlayerInvestigator
             int n = s.Length;
             int m = t.Length;
             int[,] d = new int[n + 1, m + 1];
-            
+
             if (n == 0)
             {
                 return m;
@@ -91,13 +95,16 @@ namespace SteamPlayerInvestigator
                         d[i - 1, j - 1] + cost);
                 }
             }
-            
+
             return d[n, m];
         }
 
-        public static async Task<List<WeightedPlayer>> CalculateWeightedScores(List<PlayerSummaryModel> players, PlayerSummaryModel primaryAccount) {
+        public static async Task<List<WeightedPlayer>> CalculateWeightedScores(List<PlayerSummaryModel> players,
+            PlayerSummaryModel primaryAccount)
+        {
 
-            foreach (PlayerSummaryModel player in players) {
+            foreach (PlayerSummaryModel player in players)
+            {
                 if (player == primaryAccount) continue;
 
                 int score = 0;
@@ -106,33 +113,43 @@ namespace SteamPlayerInvestigator
                 if (player.StateCode == primaryAccount.StateCode) score++;
                 if (player.PrimaryGroupId == primaryAccount.PrimaryGroupId) score++;
 
-                if (player.RealName != null && primaryAccount.RealName != null) {
-                    if (player.RealName == primaryAccount.RealName) {
+                if (player.RealName != null && primaryAccount.RealName != null)
+                {
+                    if (player.RealName == primaryAccount.RealName)
+                    {
                         score++;
-                    } else if (StringSimilarity(player.RealName, primaryAccount.RealName) < 3) {
+                    }
+                    else if (StringSimilarity(player.RealName, primaryAccount.RealName) < 3)
+                    {
                         score++;
                     }
                 }
-        
-                if (player.Nickname == primaryAccount.Nickname) {
+
+                if (player.Nickname == primaryAccount.Nickname)
+                {
                     score++;
-                } else if (StringSimilarity(player.Nickname, primaryAccount.Nickname) < 3) {
+                }
+                else if (StringSimilarity(player.Nickname, primaryAccount.Nickname) < 3)
+                {
                     score++;
                 }
 
                 string mostPlayedGame = null;
-                if (score >= 3) {
+                if (score >= 3)
+                {
                     mostPlayedGame = await MostPlayedGame(player.SteamId);
-                    if (mostPlayedGame == await MostPlayedGame(primaryAccount.SteamId)) {
+                    if (mostPlayedGame == await MostPlayedGame(primaryAccount.SteamId))
+                    {
                         score++;
                     }
                 }
-        
-                if (WeightedPlayers.All(x => x.Player.SteamId != player.SteamId)) {
+
+                if (WeightedPlayers.All(x => x.Player.SteamId != player.SteamId))
+                {
                     WeightedPlayers.Add(new WeightedPlayer(player, score, primaryAccount.Nickname, mostPlayedGame));
                 }
             }
-    
+
             WeightedPlayers = WeightedPlayers.OrderByDescending(x => x.Score).ToList();
             return WeightedPlayers;
         }
@@ -151,6 +168,7 @@ namespace SteamPlayerInvestigator
             {
                 friends.Add((long)reader["friendswith"]);
             }
+
             con.Close();
 
             // remove from users table
@@ -160,6 +178,7 @@ namespace SteamPlayerInvestigator
                 cmd = new SqlCommand("DELETE FROM users WHERE steamid = " + friend, con);
                 cmd.ExecuteNonQuery();
             }
+
             con.Close();
 
             // remove from friends table
@@ -190,7 +209,8 @@ namespace SteamPlayerInvestigator
                     @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\JMumm\OneDrive\Documents\Uni\Y3\Final_hons\Project\SteamPlayerInvestigator\SteamPlayerInvestigator\Database1.mdf;Integrated Security=True");
             SqlCommand cmd = new SqlCommand();
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT * FROM users WHERE SteamID = @SteamID AND date_added < DATEADD(day, -7, GETDATE())";
+            cmd.CommandText =
+                "SELECT * FROM users WHERE SteamID = @SteamID AND date_added < DATEADD(day, -7, GETDATE())";
             cmd.Parameters.Add("@steamid", SqlDbType.BigInt).Value = Convert.ToInt64(steamID);
             cmd.Connection = con;
             con.Open();
@@ -200,6 +220,7 @@ namespace SteamPlayerInvestigator
                 con.Close();
                 return true;
             }
+
             con.Close();
             return false;
         }
@@ -211,15 +232,17 @@ namespace SteamPlayerInvestigator
                     @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\JMumm\OneDrive\Documents\Uni\Y3\Final_hons\Project\SteamPlayerInvestigator\SteamPlayerInvestigator\Database1.mdf;Integrated Security=True");
             SqlCommand cmd = new SqlCommand();
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "UPDATE users SET steamid = @steamid, personaname = @personaname, profileurl = @profileurl, avatar = @avatar, avatarmedium = @avatarmedium, avatarfull = @avatarfull, personastate = @personastate, realname = @realname, primaryclanid = @primaryclanid, timecreated = @timecreated, loccountrycode = @loccountrycode, locstatecode = @locstatecode, loccityid = @loccityid, date_added = @date_added, banstatus = @banstatus WHERE steamid = @steamid";
+            cmd.CommandText =
+                "UPDATE users SET steamid = @steamid, personaname = @personaname, profileurl = @profileurl, avatar = @avatar, avatarmedium = @avatarmedium, avatarfull = @avatarfull, personastate = @personastate, realname = @realname, primaryclanid = @primaryclanid, timecreated = @timecreated, loccountrycode = @loccountrycode, locstatecode = @locstatecode, loccityid = @loccityid, date_added = @date_added, banstatus = @banstatus WHERE steamid = @steamid";
             cmd.Parameters.Add("@steamid", SqlDbType.BigInt).Value = Convert.ToInt64(player.SteamId);
             cmd.Parameters.Add("@profilestate", SqlDbType.Int).Value = Convert.ToInt32(player.ProfileState);
             cmd.Parameters.Add("@loccityid", SqlDbType.Int).Value = Convert.ToInt32(player.CityCode);
             cmd.Parameters.AddWithValue("@date_added", DateTime.Now);
             // check for valid datetime value
-            cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = player.AccountCreatedDate <= DateTime.MinValue ? DateTime.MinValue : player.AccountCreatedDate;
+            cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value =
+                player.AccountCreatedDate <= DateTime.MinValue ? DateTime.MinValue : player.AccountCreatedDate;
             cmd.Parameters.AddWithValue("@communityvisibilitystate", player.ProfileVisibility);
-            cmd.Parameters.AddWithValue("@personastate", player.UserStatus); 
+            cmd.Parameters.AddWithValue("@personastate", player.UserStatus);
             cmd.Parameters.AddWithValue("@personaname", player.Nickname);
             cmd.Parameters.AddWithValue("@profileurl", player.ProfileUrl);
             cmd.Parameters.AddWithValue("@avatar", player.AvatarUrl);
@@ -262,7 +285,7 @@ namespace SteamPlayerInvestigator
             {
                 cmd.Parameters.AddWithValue("@locstatecode", player.StateCode);
             }
-            
+
             if (await CheckVacBan(player.SteamId))
             {
                 cmd.Parameters.AddWithValue("@banstatus", 1);
@@ -271,6 +294,7 @@ namespace SteamPlayerInvestigator
             {
                 cmd.Parameters.AddWithValue("@banstatus", 0);
             }
+
             cmd.Connection = con;
             con.Open();
             cmd.ExecuteNonQuery();
@@ -293,9 +317,10 @@ namespace SteamPlayerInvestigator
             cmd.Parameters.Add("@loccityid", SqlDbType.Int).Value = Convert.ToInt32(player.CityCode);
             cmd.Parameters.AddWithValue("@date_added", DateTime.Now);
             // check for valid datetime value
-            cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value = player.AccountCreatedDate <= DateTime.MinValue ? DateTime.MinValue : player.AccountCreatedDate;
+            cmd.Parameters.Add("@timecreated", SqlDbType.DateTime2).Value =
+                player.AccountCreatedDate <= DateTime.MinValue ? DateTime.MinValue : player.AccountCreatedDate;
             cmd.Parameters.AddWithValue("@communityvisibilitystate", player.ProfileVisibility);
-            cmd.Parameters.AddWithValue("@personastate", player.UserStatus); 
+            cmd.Parameters.AddWithValue("@personastate", player.UserStatus);
             cmd.Parameters.AddWithValue("@personaname", player.Nickname);
             cmd.Parameters.AddWithValue("@profileurl", player.ProfileUrl);
             cmd.Parameters.AddWithValue("@avatar", player.AvatarUrl);
@@ -336,7 +361,7 @@ namespace SteamPlayerInvestigator
             {
                 cmd.Parameters.AddWithValue("@locstatecode", player.StateCode);
             }
-            
+
             if (await CheckVacBan(player.SteamId))
             {
                 cmd.Parameters.AddWithValue("@banstatus", 1);
@@ -345,6 +370,7 @@ namespace SteamPlayerInvestigator
             {
                 cmd.Parameters.AddWithValue("@banstatus", 0);
             }
+
             cmd.Connection = con;
             con.Open();
             cmd.ExecuteNonQuery();
@@ -377,17 +403,16 @@ namespace SteamPlayerInvestigator
             return playerSummaryResponse?.Data;
         }
 
-        private static async Task<IReadOnlyCollection<FriendModel>> getFriendList(ISteamUser steamInterface, ulong steamID)
+        public static async Task<PlayerSummaryModel> GetBulkPlayerInfo(ISteamUser steamInterface, ulong steamID)
         {
-            // exception handling for System.Net.Http.HttpRequestException
             try
             {
-                ISteamWebResponse<IReadOnlyCollection<FriendModel>> friendListResponse = await steamInterface.GetFriendsListAsync(steamID);
-                return friendListResponse.Data;
+                ISteamWebResponse<PlayerSummaryModel> playerSummaryResponse = await steamInterface.GetPlayerSummaryAsync(steamID);
+                return playerSummaryResponse?.Data;
             }
             catch (HttpRequestException e)
             {
-                Debug.WriteLine("Skipping current friend, thrown an error. Likely hidden Friends List.");
+                Debug.WriteLine("Skipping current friend, thrown an error");
                 return null;
             }
         }
@@ -418,7 +443,7 @@ namespace SteamPlayerInvestigator
                 return false;
             }
         }
-        
+
         public static async Task<List<PlayerSummaryModel>> AvailableAccounts(ulong steamID)
         {
             SqlConnection con =
@@ -426,7 +451,8 @@ namespace SteamPlayerInvestigator
                     @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\JMumm\OneDrive\Documents\Uni\Y3\Final_hons\Project\SteamPlayerInvestigator\SteamPlayerInvestigator\Database1.mdf;Integrated Security=True");
             SqlCommand cmd = new SqlCommand();
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT * FROM dbo.users INNER JOIN dbo.friends ON dbo.users.steamid = dbo.friends.friendswith WHERE dbo.users.banstatus = 1";
+            cmd.CommandText =
+                "SELECT * FROM dbo.users INNER JOIN dbo.friends ON dbo.users.steamid = dbo.friends.friendswith WHERE dbo.users.banstatus = 1";
             cmd.Parameters.Add("@steamid", SqlDbType.BigInt).Value = Convert.ToInt64(steamID);
 
             // put statement into PlayerSummaryModel datareader list
@@ -467,19 +493,35 @@ namespace SteamPlayerInvestigator
             return players;
         }
 
-        // TODO refactor this
+        private static async Task<IReadOnlyCollection<FriendModel>> GetFriendList(ISteamUser steamInterface, ulong steamID)
+        {
+            try
+            {
+                ISteamWebResponse<IReadOnlyCollection<FriendModel>> friendListResponse = await steamInterface.GetFriendsListAsync(steamID);
+                return friendListResponse?.Data;
+            }
+            catch (HttpRequestException e)
+            {
+                Debug.WriteLine("Skipping current friend, thrown an error. Likely private data?");
+                return null;
+            }
+        }
+
         public static async Task AddFriendData(ISteamUser steamInterface, ulong steamID)
         {
-            // get friend data
-            // TODO add a check here to deal with hidden friend list (check fof insert)
-            IReadOnlyCollection<FriendModel> friendsList = await getFriendList(steamInterface, steamID);
+            IReadOnlyCollection<FriendModel> friendsList = await GetFriendList(steamInterface, steamID);
 
-            // add friend data
             if (friendsList != null)
             {
+                List<Task<PlayerSummaryModel>> playerTasks = new List<Task<PlayerSummaryModel>>();
                 foreach (FriendModel friend in friendsList)
                 {
-                    PlayerSummaryModel currPlayer = await getPlayerInfo(steamInterface, friend.SteamId);
+                    playerTasks.Add(GetBulkPlayerInfo(steamInterface, friend.SteamId));
+                }
+
+                PlayerSummaryModel[] playerSummaries = await Task.WhenAll(playerTasks);
+                foreach (PlayerSummaryModel currPlayer in playerSummaries)
+                {
                     if (currPlayer != null)
                     {
                         await InsertDataAsync(currPlayer);
@@ -496,53 +538,74 @@ namespace SteamPlayerInvestigator
             {
                 Debug.WriteLine("Error, skipping current friend list. Likely a private profile.");
             }
+        }
 
-            // add friend of friend data
+        public static async Task AddFriendOfFriendData(ISteamUser steamInterface, ulong steamID)
+        {
+            IReadOnlyCollection<FriendModel> friendsList = await GetFriendList(steamInterface, steamID);
+
             if (friendsList != null)
             {
+                List<Task<PlayerSummaryModel>> playerTasks = new List<Task<PlayerSummaryModel>>();
+                List<Task<IReadOnlyCollection<FriendModel>>> friendListTasks =
+                    new List<Task<IReadOnlyCollection<FriendModel>>>();
+
                 foreach (FriendModel friend in friendsList)
                 {
-                    IReadOnlyCollection<FriendModel> friendOfFriendList = null;
-                    PlayerSummaryModel currPlayer = await getPlayerInfo(steamInterface, friend.SteamId);
+                    Debug.WriteLine("Getting player info for processing - steamID: " + friend.SteamId);
+                    playerTasks.Add(GetBulkPlayerInfo(steamInterface, friend.SteamId));
+                }
 
-                    // null check on currPlayer
-                    if (currPlayer == null)
+                IReadOnlyCollection<PlayerSummaryModel> players = await Task.WhenAll(playerTasks);
+
+                foreach (PlayerSummaryModel currPlayer in players)
+                {
+                    if (currPlayer is { ProfileVisibility: ProfileVisibility.Public })
                     {
-                        Debug.WriteLine("Skipping current player, likely a bad profile");
-                        continue;
+                        Debug.WriteLine("Getting friend list of - steamID: " + currPlayer.SteamId);
+                        friendListTasks.Add(GetFriendList(steamInterface, currPlayer.SteamId));
                     }
+                }
 
-                    if (currPlayer.ProfileVisibility == ProfileVisibility.Public)
-                    {
-                        friendOfFriendList = await getFriendList(steamInterface, friend.SteamId);
-                    }
+                IReadOnlyCollection<IReadOnlyCollection<FriendModel>> friendOfFriendLists =
+                    await Task.WhenAll(friendListTasks);
 
+
+                foreach (IReadOnlyCollection<FriendModel> friendOfFriendList in friendOfFriendLists)
+                {
                     if (friendOfFriendList != null)
                     {
                         foreach (FriendModel friendOfFriend in friendOfFriendList)
                         {
-                            PlayerSummaryModel friendOfFriendPlayer =
-                                await getPlayerInfo(steamInterface, friendOfFriend.SteamId);
-                            // null check on friendOfFriendPlayer
-                            if (friendOfFriendPlayer != null)
-                            {
-                                await InsertDataAsync(friendOfFriendPlayer);
-                                InsertFriends(currPlayer.SteamId, friendOfFriendPlayer.SteamId);
-                                Debug.WriteLine("Added friend of friend data. steamID: " + friendOfFriendPlayer.SteamId);
-                            }
-                            else
-                            {
-                                Debug.WriteLine("Skipping current player, likely a bad profile");
-                            }
+                            Debug.WriteLine("Getting player info for processing (fof list) - steamID: " + friendOfFriend.SteamId);
+                            playerTasks.Add(GetBulkPlayerInfo(steamInterface, friendOfFriend.SteamId));
                         }
                     }
                     else
                     {
-                        Debug.WriteLine("Error, skipping current friend of friend list. Likely a private profile.");
-                        continue;
+                        Debug.WriteLine("Skipping current friend of friend list. Likely a private profile.");
                     }
                 }
+
+                PlayerSummaryModel[] playerSummaries = await Task.WhenAll(playerTasks);
+
+                await Task.WhenAll(
+                    playerSummaries.Select(async currPlayer =>
+                    {
+                        if (currPlayer != null)
+                        {
+                            await InsertDataAsync(currPlayer);
+                            InsertFriends(steamID, currPlayer.SteamId);
+                            Debug.WriteLine("Added fof data to database. steamID: " + currPlayer.SteamId);
+                        }
+                    })
+                );
+            }
+            else
+            {
+                Debug.WriteLine("Error, skipping current friend list. Likely a private profile.");
             }
         }
+
     }
 }

@@ -25,7 +25,7 @@ namespace SteamPlayerInvestigator
         {
             // need to convert steamiD to ulong for steamInterface
             ulong steamID = Convert.ToUInt64(TextBoxSteamID.Text);
-            string steamAPIKey = "7E7C3A26841681369678AE28CDF62901";
+            string steamAPIKey = Credentials.ApiKey;
 
             // factory to be used to generate various web interfaces
             SteamWebInterfaceFactory webInterfaceFactory = new SteamWebInterfaceFactory(steamAPIKey);
@@ -44,6 +44,7 @@ namespace SteamPlayerInvestigator
                     await App.UpdateUserData(player);
                     Debug.WriteLine("updated steamID: " + player.SteamId);
                     await App.AddFriendData(steamInterface, steamID);
+                    await App.AddFriendOfFriendData(steamInterface, steamID);
                 }
                 else
                 {
@@ -57,6 +58,7 @@ namespace SteamPlayerInvestigator
                 await App.InsertDataAsync(player);
                 Debug.WriteLine("User doesn't exist, inserting. SteamID: " + player.SteamId);
                 await App.AddFriendData(steamInterface, steamID);
+                await App.AddFriendOfFriendData(steamInterface, steamID);
             }
 
             PlayerSummaryModel primaryAccount = player;
