@@ -27,7 +27,7 @@
             <TextBox x:Name="TextBoxSteamID" Height="21" Width="240" Grid.Column="1" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
             <Button x:Name="SubmitBtnSteamID" Content="Submit" Height="24" Width="47" Click="Button_Click" Grid.Column="2" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
         </Grid>
-        <Button x:Name="debugButton" Content="Debug" HorizontalAlignment="Left" Margin="140,112,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.5" Height="30" Width="81" Background="#FF37FF00">
+        <Button x:Name="debugButton" Content="Debug" HorizontalAlignment="Left" Margin="140,112,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.5" Height="30" Width="81" Background="#FF37FF00" Click="debugButton_Click">
             <Button.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform/>

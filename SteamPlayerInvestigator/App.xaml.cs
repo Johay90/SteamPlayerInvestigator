@@ -23,6 +23,7 @@ namespace SteamPlayerInvestigator
         // factory to be used to generate various web interfaces
         private const string SteamApiKey = "7E7C3A26841681369678AE28CDF62901";
         private static readonly SteamWebInterfaceFactory WebInterfaceFactory = new SteamWebInterfaceFactory(SteamApiKey);
+        public static List<WeightedPlayer> WeightedPlayers = new List<WeightedPlayer>();
 
         // The string mostPlayedGame throws a System.InvalidOperationException
 
@@ -96,8 +97,6 @@ namespace SteamPlayerInvestigator
         }
 
         public static async Task<List<WeightedPlayer>> CalculateWeightedScores(List<PlayerSummaryModel> players, PlayerSummaryModel primaryAccount) {
-            
-            List<WeightedPlayer> weightedPlayers = new List<WeightedPlayer>();
 
             foreach (PlayerSummaryModel player in players)
             {
@@ -164,13 +163,10 @@ namespace SteamPlayerInvestigator
                     }
                     
                     
-                    
-                    
-                    
                 }
-                weightedPlayers.Add(new WeightedPlayer(player, score));
+                WeightedPlayers.Add(new WeightedPlayer(player, score));
             }
-            return weightedPlayers;
+            return WeightedPlayers;
         }
 
         public static void RemoveFriends(ulong steamid)

@@ -80,6 +80,12 @@ namespace SteamPlayerInvestigator
 
 
         }
-
+        
+        private void debugButton_Click(object sender, RoutedEventArgs e)
+        {
+            DebugWindow debugWindow = new DebugWindow();
+            debugWindow.DataContext = App.WeightedPlayers;
+            debugWindow.Show();
+        }
     }
     }
