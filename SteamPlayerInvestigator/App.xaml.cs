@@ -11,7 +11,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using SteamPlayerInvestigator.Classes;
-using System.Reflection.Metadata;
 
 namespace SteamPlayerInvestigator
 {
@@ -30,14 +29,14 @@ namespace SteamPlayerInvestigator
         private static async Task<string> MostPlayedGame(ulong steamID)
         {
             PlayerService steamPlayerInterface = WebInterfaceFactory.CreateSteamWebInterface<PlayerService>();
-            ISteamWebResponse<RecentlyPlayedGamesResultModel> ownedGames =
-                await steamPlayerInterface.GetRecentlyPlayedGamesAsync(steamID);
-            RecentlyPlayedGamesResultModel gamesData = ownedGames.Data;
+            // get top played games
+            ISteamWebResponse<OwnedGamesResultModel> ownedGames = await steamPlayerInterface.GetOwnedGamesAsync(steamID);
+            OwnedGamesResultModel gamesData = ownedGames.Data;
 
             string mostPlayedGame = string.Empty;
-            if (gamesData.RecentlyPlayedGames.Any())
+            if (gamesData.OwnedGames.Any())
             {
-                mostPlayedGame = gamesData.RecentlyPlayedGames
+                mostPlayedGame = gamesData.OwnedGames
                     .OrderByDescending(x => x.PlaytimeForever)
                     .First()
                     .Name;
@@ -98,74 +97,43 @@ namespace SteamPlayerInvestigator
 
         public static async Task<List<WeightedPlayer>> CalculateWeightedScores(List<PlayerSummaryModel> players, PlayerSummaryModel primaryAccount) {
 
-            foreach (PlayerSummaryModel player in players)
-            {
+            foreach (PlayerSummaryModel player in players) {
+                if (player == primaryAccount) continue;
+
                 int score = 0;
-                if (player == primaryAccount)
-                {
-                    // primary user, we can skip
-                }
-                else
-                {
-                    // TODO need to check or null, or 0s (Basically check for blank records)
-                    if (player.CityCode == primaryAccount.CityCode && player.CityCode != 0)
-                    {
-                        score += 1;
-                    }
-                    if (player.CountryCode == primaryAccount.CountryCode)
-                    {
-                        score += 1;
-                    }
-                    if (player.StateCode == primaryAccount.StateCode)
-                    {
-                        score += 1;
-                    }
+                if (player.CityCode == primaryAccount.CityCode && player.CityCode != 0) score++;
+                if (player.CountryCode == primaryAccount.CountryCode) score++;
+                if (player.StateCode == primaryAccount.StateCode) score++;
+                if (player.PrimaryGroupId == primaryAccount.PrimaryGroupId) score++;
 
-                    if (player.PrimaryGroupId == primaryAccount.PrimaryGroupId)
-                    {
-                        score += 1;
+                if (player.RealName != null && primaryAccount.RealName != null) {
+                    if (player.RealName == primaryAccount.RealName) {
+                        score++;
+                    } else if (StringSimilarity(player.RealName, primaryAccount.RealName) < 3) {
+                        score++;
                     }
-                    
-                    if (player.RealName != null && primaryAccount.RealName != null)
-                    {
-                        if (player.RealName == primaryAccount.RealName)
-                        {
-                            score += 1;
-                        }
-                        else
-                        {
-                            if (StringSimilarity(player.RealName, primaryAccount.RealName) < 3)
-                            {
-                                score += 1;
-                            }
-                        }
-                    }
-                    if (player.Nickname == primaryAccount.Nickname)
-                    {
-                        score += 1;
-                    }
-                    else
-                    {
-                        if (StringSimilarity(player.Nickname, primaryAccount.Nickname) < 3)
-                        {
-                            score += 1;
-                        }
-                    }
-
-                    
-                    // some type of mine score here, will take an age otherwise. 
-                    // TODO add outputting somehow from this. Ie procesing x out of x.. 
-                    if (score >= 3){
-                        if (await MostPlayedGame(player.SteamId) == await MostPlayedGame(primaryAccount.SteamId))
-                        {
-                            score += 1;
-                        }
-                    }
-                    
-                    
                 }
-                WeightedPlayers.Add(new WeightedPlayer(player, score));
+        
+                if (player.Nickname == primaryAccount.Nickname) {
+                    score++;
+                } else if (StringSimilarity(player.Nickname, primaryAccount.Nickname) < 3) {
+                    score++;
+                }
+
+                string mostPlayedGame = null;
+                if (score >= 3) {
+                    mostPlayedGame = await MostPlayedGame(player.SteamId);
+                    if (mostPlayedGame == await MostPlayedGame(primaryAccount.SteamId)) {
+                        score++;
+                    }
+                }
+        
+                if (WeightedPlayers.All(x => x.Player.SteamId != player.SteamId)) {
+                    WeightedPlayers.Add(new WeightedPlayer(player, score, primaryAccount.Nickname, mostPlayedGame));
+                }
             }
+    
+            WeightedPlayers = WeightedPlayers.OrderByDescending(x => x.Score).ToList();
             return WeightedPlayers;
         }
 

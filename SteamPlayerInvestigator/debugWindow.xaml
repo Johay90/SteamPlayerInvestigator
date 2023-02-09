@@ -5,14 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SteamPlayerInvestigator"
         mc:Ignorable="d"
-        Title="Debug Window" Height="150" Width="214">
-    <Grid Margin="0,0,242,148">
-        <ListBox x:Name="debugListBox" ItemsSource="{Binding}">
+        Title="Debug Window" Height="241" Width="290">
+    <Grid Margin="0,0,145,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="50*" />
+            <ColumnDefinition Width="50*" />
+        </Grid.ColumnDefinitions>
+        <ListBox x:Name="debugListBox" ItemsSource="{Binding}" Height="Auto" Grid.Column="0" SelectionChanged="debugListBox_SelectionChanged">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding Player.Nickname}" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+        <ListBox x:Name="selectedItemInfo" Height="Auto" Grid.Column="1" />
     </Grid>
 </Window>

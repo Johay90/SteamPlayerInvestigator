@@ -9,11 +9,15 @@ namespace SteamPlayerInvestigator.Classes
     {
         public PlayerSummaryModel Player { get; set; }
         public int Score { get; set; }
+        public string AccountConectedTo { get; set; }
+        public string MostPlayedGame { get; set; }
 
-        public WeightedPlayer(PlayerSummaryModel player, int score)
+        public WeightedPlayer(PlayerSummaryModel player, int score, string accountConectedTo, string mostPlayedGame)
         {
             Player = player;
             Score = score;
+            AccountConectedTo = accountConectedTo;
+            MostPlayedGame = mostPlayedGame;
         }
     }
 }
