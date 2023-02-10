@@ -79,7 +79,7 @@ namespace SteamPlayerInvestigator.Classes
                 cmd.Parameters.AddWithValue("@locstatecode", player.StateCode);
             }
 
-            await Task.Delay(500);
+            await Task.Delay(1000); // Wait for 1 second
             if (await mainWindow.CheckVacBan(player.SteamId))
             {
                 cmd.Parameters.AddWithValue("@banstatus", 1);

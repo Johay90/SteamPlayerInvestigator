@@ -26,8 +26,9 @@
             <Label Content="Steam ID&#xD;&#xA;" Foreground="White" FontSize="18" Height="32" Width="89" VerticalAlignment="Center" HorizontalAlignment="Center"/>
             <TextBox x:Name="TextBoxSteamID" Height="21" Width="240" Grid.Column="1" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
             <Button x:Name="SubmitBtnSteamID" Content="Submit" Height="24" Width="47" Click="Button_Click" Grid.Column="2" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+            <Label Content="Steam ID&#xA;" Foreground="White" FontSize="18" Height="32" Width="89" VerticalAlignment="Center" HorizontalAlignment="Center"/>
         </Grid>
-        <Button x:Name="debugButton" Content="Debug" HorizontalAlignment="Left" Margin="140,112,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.5" Height="30" Width="81" Background="#FF37FF00" Click="debugButton_Click">
+        <Button x:Name="debugButton" Content="Connected Accounts (Debugging)" HorizontalAlignment="Left" Margin="283,90,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.5" Height="30" Width="239" Background="#FFF9BDA6" Click="debugButton_Click">
             <Button.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform/>
@@ -37,5 +38,6 @@
                 </TransformGroup>
             </Button.RenderTransform>
         </Button>
+        <Label Content="{Binding StatusMessage}" Foreground="#FF929292" FontSize="18" Height="54" Width="780" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0,50,0,0" Grid.Row="2"/>
     </Grid>
 </Window>

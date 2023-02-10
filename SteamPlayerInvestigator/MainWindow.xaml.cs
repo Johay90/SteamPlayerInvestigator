@@ -11,16 +11,39 @@ using SteamPlayerInvestigator.Classes;
 using System.Data.SqlClient;
 using System.Data;
 using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Numerics;
 
 namespace SteamPlayerInvestigator
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private const string SteamApiKey = Credentials.ApiKey;
+
+        private string _statusMessage;
+        public string StatusMessage
+        {
+            get { return _statusMessage; }
+            set
+            {
+                _statusMessage = value;
+                OnPropertyChanged("StatusMessage");
+            }
+        }
         
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        
+        private const string SteamApiKey = Credentials.ApiKey;
+
+        private int increment = 0;
+
         //private readonly App _app = (App)Application.Current;
 
         private static readonly SteamWebInterfaceFactory
@@ -34,6 +57,7 @@ namespace SteamPlayerInvestigator
         {
             InitializeComponent();
             _db = CreateDatabase();
+            DataContext = this;
         }
 
         private Database CreateDatabase()
@@ -41,7 +65,7 @@ namespace SteamPlayerInvestigator
             return new Database(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\JMumm\OneDrive\Documents\Uni\Y3\Final_hons\Project\SteamPlayerInvestigator\SteamPlayerInvestigator\Database1.mdf;Integrated Security=True", this);
         }
 
-          private async Task<string> MostPlayedGame(ulong steamID)
+        private async Task<string> MostPlayedGame(ulong steamID)
         {
             PlayerService steamPlayerInterface = WebInterfaceFactory.CreateSteamWebInterface<PlayerService>();
             // get top played games
@@ -129,21 +153,21 @@ namespace SteamPlayerInvestigator
                 {
                     if (player.RealName == primaryAccount.RealName)
                     {
-                        score++;
+                        score += 3;
                     }
                     else if (StringSimilarity(player.RealName, primaryAccount.RealName) < 3)
                     {
-                        score++;
+                        score += 2;
                     }
                 }
 
                 if (player.Nickname == primaryAccount.Nickname)
                 {
-                    score++;
+                    score += 3;
                 }
                 else if (StringSimilarity(player.Nickname, primaryAccount.Nickname) < 3)
                 {
-                    score++;
+                    score += 2;
                 }
 
                 string mostPlayedGame = null;
@@ -348,7 +372,7 @@ namespace SteamPlayerInvestigator
             }
             catch (HttpRequestException e)
             {
-                Debug.WriteLine("Skipping current friend, thrown an error");
+                Debug.WriteLine("Skipping current friend, thrown an error " + e.Message);
                 return null;
             }
         }
@@ -454,15 +478,23 @@ namespace SteamPlayerInvestigator
                 foreach (FriendModel friend in friendsList)
                 {
                     playerTasks.Add(GetBulkPlayerInfo(steamInterface, friend.SteamId));
+                    increment++;
+                    StatusMessage = "Getting friend data " + "(" + increment + ") SteamID: " + friend.SteamId;
+                    Debug.WriteLine("Getting friend data " + friend.SteamId);
+                    await Task.Delay(1000); // Wait for 1 second
                 }
 
                 PlayerSummaryModel[] playerSummaries = await Task.WhenAll(playerTasks);
+                increment = 0;
+                // TODO Hold this data until we can confirm fof list is complete
                 foreach (PlayerSummaryModel currPlayer in playerSummaries)
                 {
                     if (currPlayer != null)
                     {
                         await _db.InsertDataAsync(currPlayer);
                         InsertFriends(steamID, currPlayer.SteamId);
+                        increment++;
+                        StatusMessage = "Added friend data. " + "(" + increment + ") SteamID: " + currPlayer.SteamId;
                         Debug.WriteLine("Added friend data. steamID: " + currPlayer.SteamId);
                     }
                     else
@@ -486,36 +518,46 @@ namespace SteamPlayerInvestigator
                 List<Task<PlayerSummaryModel>> playerTasks = new List<Task<PlayerSummaryModel>>();
                 List<Task<IReadOnlyCollection<FriendModel>>> friendListTasks =
                     new List<Task<IReadOnlyCollection<FriendModel>>>();
-
+                increment = 0;
                 foreach (FriendModel friend in friendsList)
                 {
                     Debug.WriteLine("Getting player info for processing - steamID: " + friend.SteamId);
+                    increment++;
+                    StatusMessage = "Getting player info for processing " + "(" + increment + ") SteamID: " + friend.SteamId;
                     playerTasks.Add(GetBulkPlayerInfo(steamInterface, friend.SteamId));
+                    await Task.Delay(1000); // Wait for 1 second
                 }
 
                 IReadOnlyCollection<PlayerSummaryModel> players = await Task.WhenAll(playerTasks);
+                increment = 0;
 
                 foreach (PlayerSummaryModel currPlayer in players)
                 {
                     if (currPlayer is { ProfileVisibility: ProfileVisibility.Public })
                     {
                         Debug.WriteLine("Getting friend list of - steamID: " + currPlayer.SteamId);
+                        increment++;
+                        StatusMessage = "Getting friend list from steam user " + "(" + increment + ") SteamID: " + currPlayer.SteamId;
                         friendListTasks.Add(GetFriendList(steamInterface, currPlayer.SteamId));
+                        await Task.Delay(1000); // Wait for 1 second
                     }
                 }
 
                 IReadOnlyCollection<IReadOnlyCollection<FriendModel>> friendOfFriendLists =
                     await Task.WhenAll(friendListTasks);
 
-
+                increment = 0;
                 foreach (IReadOnlyCollection<FriendModel> friendOfFriendList in friendOfFriendLists)
                 {
                     if (friendOfFriendList != null)
                     {
                         foreach (FriendModel friendOfFriend in friendOfFriendList)
                         {
+                            increment++;
+                            StatusMessage = "Getting player info for processing (fof list) " + "(" + increment + ") SteamID: " + friendOfFriend.SteamId;
                             Debug.WriteLine("Getting player info for processing (fof list) - steamID: " + friendOfFriend.SteamId);
                             playerTasks.Add(GetBulkPlayerInfo(steamInterface, friendOfFriend.SteamId));
+                            await Task.Delay(1000); // Wait for 1 second
                         }
                     }
                     else
@@ -525,6 +567,7 @@ namespace SteamPlayerInvestigator
                 }
 
                 PlayerSummaryModel[] playerSummaries = await Task.WhenAll(playerTasks);
+                increment = 0;
 
                 await Task.WhenAll(
                     playerSummaries.Select(async currPlayer =>
@@ -533,7 +576,10 @@ namespace SteamPlayerInvestigator
                         {
                             await _db.InsertDataAsync(currPlayer);
                             InsertFriends(steamID, currPlayer.SteamId);
+                            increment++;
+                            StatusMessage = "Added fof data to database " + "(" + increment + ") SteamID: " + currPlayer.SteamId;
                             Debug.WriteLine("Added fof data to database. steamID: " + currPlayer.SteamId);
+                            await Task.Delay(1000); // Wait for 1 second
                         }
                     })
                 );
@@ -546,6 +592,8 @@ namespace SteamPlayerInvestigator
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
+            // TODO Move away from static/single instance variables/methods here so that we can reuse button_click
+
             // need to convert steamiD to ulong for steamInterface
             ulong steamID = Convert.ToUInt64(TextBoxSteamID.Text);
             string steamAPIKey = Credentials.ApiKey;
@@ -562,6 +610,7 @@ namespace SteamPlayerInvestigator
             {
                 if (UserNeedsUpdate(steamID))
                 {
+                    StatusMessage = "User needs update";
                     player = await getPlayerInfo(steamInterface, steamID);
                     RemoveFriends(steamID);
                     await UpdateUserData(player);
@@ -573,11 +622,13 @@ namespace SteamPlayerInvestigator
                 {
                     player = await getPlayerInfo(steamInterface, steamID);
                     Debug.WriteLine("User is up to date");
+                    StatusMessage = "User is up to date";
                 }
             }
             else
             {
                 player = await getPlayerInfo(steamInterface, steamID);
+                StatusMessage = "User doesn't exist, inserting. SteamID: " + player.SteamId;
                 await _db.InsertDataAsync(player);
                 Debug.WriteLine("User doesn't exist, inserting. SteamID: " + player.SteamId);
                 await AddFriendData(steamInterface, steamID);
@@ -593,7 +644,7 @@ namespace SteamPlayerInvestigator
             // get top score value
             int topScore = weightedPlayers.Aggregate((l, r) => l.Score > r.Score ? l : r).Score;
 
-            int maxScore = 7;
+            int maxScore = 10;
             // output window
             output outputWindow = new output();
             outputWindow.Show();
