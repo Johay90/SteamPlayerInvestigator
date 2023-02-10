@@ -154,12 +154,12 @@ namespace SteamPlayerInvestigator
             {
                 PlayerProfile profile = new PlayerProfile
                 {
-                    Nickname = reader["Nickname"].ToString(),
-                    RealName = reader["RealName"].ToString(),
-                    CityCode = Convert.ToUInt32(reader["CityCode"].ToString()),
-                    CountryCode = reader["CountryCode"].ToString(),
-                    StateCode = reader["StateCode"].ToString(),
-                    PrimaryGroupId = reader["PrimaryGroupId"].ToString(),
+                    Nickname = reader["personaname"].ToString(),
+                    RealName = reader["realname"].ToString(),
+                    CityCode = reader["loccityid"].ToString(),
+                    CountryCode = reader["loccountrycode"].ToString(),
+                    StateCode = reader["locstatecode"].ToString(),
+                    PrimaryGroupId = reader["primaryclanid"].ToString(),
                 };
                 profiles.Add(profile);
             }
@@ -174,6 +174,11 @@ namespace SteamPlayerInvestigator
 
             // use the IDataView object to train the machine learning model
             var pipeline = mlContext.Transforms.Conversion.MapValueToKey("Label", "PrimaryGroupId")
+                .Append(mlContext.Transforms.Categorical.OneHotEncoding("Nickname"))
+                .Append(mlContext.Transforms.Categorical.OneHotEncoding("RealName"))
+                .Append(mlContext.Transforms.Categorical.OneHotEncoding("CityCode"))
+                .Append(mlContext.Transforms.Categorical.OneHotEncoding("CountryCode"))
+                .Append(mlContext.Transforms.Categorical.OneHotEncoding("StateCode"))
                 .Append(mlContext.Transforms.Concatenate("Features",
                     new[] { "Nickname", "RealName", "CityCode", "CountryCode", "StateCode" }))
                 .AppendCacheCheckpoint(mlContext)
@@ -182,9 +187,8 @@ namespace SteamPlayerInvestigator
 
             var model = pipeline.Fit(dataView);
 
-            // save the trained machine learning model
+            // save the model to a .zip file
             mlContext.Model.Save(model, dataView.Schema, "model.zip");
-
         }
 
         private async Task<List<WeightedPlayer>> CalculateWeightedScores(List<PlayerSummaryModel> players,
@@ -239,6 +243,7 @@ namespace SteamPlayerInvestigator
             }
 
             WeightedPlayers = WeightedPlayers.OrderByDescending(x => x.Score).ToList();
+            CreateModel();
             return WeightedPlayers;
         }
 

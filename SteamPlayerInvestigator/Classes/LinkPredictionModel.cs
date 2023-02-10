@@ -10,10 +10,10 @@ namespace SteamPlayerInvestigator.Classes
     {
         public string Nickname { get; set; }
         public string RealName { get; set; }
-        public int CityCode { get; set; }
-        public int CountryCode { get; set; }
-        public int StateCode { get; set; }
-        public int PrimaryGroupId { get; set; }
+        public string CityCode { get; set; }
+        public string CountryCode { get; set; }
+        public string StateCode { get; set; }
+        public string PrimaryGroupId { get; set; }
         public string MostPlayedGame { get; set; }
         public float LinkPrediction { get; set; }
     }
@@ -22,10 +22,10 @@ namespace SteamPlayerInvestigator.Classes
     {
         [LoadColumn(0)] public string Nickname { get; set; }
         [LoadColumn(1)] public string RealName { get; set; }
-        [LoadColumn(2)] public int CityCode { get; set; }
-        [LoadColumn(3)] public int CountryCode { get; set; }
-        [LoadColumn(4)] public int StateCode { get; set; }
-        [LoadColumn(5)] public int PrimaryGroupId { get; set; }
+        [LoadColumn(2)] public string CityCode { get; set; }
+        [LoadColumn(3)] public string CountryCode { get; set; }
+        [LoadColumn(4)] public string StateCode { get; set; }
+        [LoadColumn(5)] public string PrimaryGroupId { get; set; }
         [LoadColumn(6)] public string MostPlayedGame { get; set; }
         [LoadColumn(7), ColumnName("Label")] public float LinkPrediction { get; set; }
     }
