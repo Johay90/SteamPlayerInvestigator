@@ -90,7 +90,10 @@ namespace SteamPlayerInvestigator.Classes
             }
 
             cmd.Connection = _connection;
-            await _connection.OpenAsync();
+            if (_connection.State == ConnectionState.Closed)
+            {
+                await _connection.OpenAsync();
+            }
             await cmd.ExecuteNonQueryAsync();
             _connection.Close();
         }

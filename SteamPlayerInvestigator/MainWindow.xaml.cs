@@ -593,6 +593,11 @@ namespace SteamPlayerInvestigator
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             // TODO Move away from static/single instance variables/methods here so that we can reuse button_click
+            // for example AvailableAccounts might be a problem
+            // data context for debugging listbox is also a problem re: instancing
+            // Can prolly just empty WeightedPlayers since it's global scope, but maybe find a better solution
+
+            WeightedPlayers.Clear();
 
             // need to convert steamiD to ulong for steamInterface
             ulong steamID = Convert.ToUInt64(TextBoxSteamID.Text);
