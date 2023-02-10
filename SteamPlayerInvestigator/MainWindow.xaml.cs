@@ -12,7 +12,8 @@ using System.Data.SqlClient;
 using System.Data;
 using System.Threading.Tasks;
 using System.ComponentModel;
-using System.Numerics;
+using Microsoft.ML;
+using Microsoft.ML.MultiClass;
 
 namespace SteamPlayerInvestigator
 {
@@ -133,6 +134,58 @@ namespace SteamPlayerInvestigator
             }
 
             return d[n, m];
+        }
+
+        public void CreateModel()
+        {
+            // create a connection to the database
+            SqlConnection con =
+                new SqlConnection(
+                    @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\JMumm\OneDrive\Documents\Uni\Y3\Final_hons\Project\SteamPlayerInvestigator\SteamPlayerInvestigator\Database1.mdf;Integrated Security=True");
+            SqlCommand cmd = new SqlCommand();
+            cmd.Connection = con;
+            cmd.CommandType = CommandType.Text;
+            cmd.CommandText = "SELECT * FROM [dbo].[users]";
+            con.Open();
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            // retrieve the player information from the database and store it in a list
+            List<PlayerProfile> profiles = new List<PlayerProfile>();
+            while (reader.Read())
+            {
+                PlayerProfile profile = new PlayerProfile
+                {
+                    Nickname = reader["Nickname"].ToString(),
+                    RealName = reader["RealName"].ToString(),
+                    CityCode = Convert.ToUInt32(reader["CityCode"].ToString()),
+                    CountryCode = reader["CountryCode"].ToString(),
+                    StateCode = reader["StateCode"].ToString(),
+                    PrimaryGroupId = reader["PrimaryGroupId"].ToString(),
+                };
+                profiles.Add(profile);
+            }
+
+            con.Close();
+
+            // create an instance of the MLContext class
+            MLContext mlContext = new MLContext();
+
+            // use the mlContext.Data property to create a IDataView object that represents the data you want to use for training
+            IDataView dataView = mlContext.Data.LoadFromEnumerable(profiles);
+
+            // use the IDataView object to train the machine learning model
+            var pipeline = mlContext.Transforms.Conversion.MapValueToKey("Label", "PrimaryGroupId")
+                .Append(mlContext.Transforms.Concatenate("Features",
+                    new[] { "Nickname", "RealName", "CityCode", "CountryCode", "StateCode" }))
+                .AppendCacheCheckpoint(mlContext)
+                .Append(mlContext.MulticlassClassification.Trainers.SdcaMaximumEntropy("Label", "Features"))
+                .Append(mlContext.Transforms.Conversion.MapKeyToValue("PredictedLabel", "Label"));
+
+            var model = pipeline.Fit(dataView);
+
+            // save the trained machine learning model
+            mlContext.Model.Save(model, dataView.Schema, "model.zip");
+
         }
 
         private async Task<List<WeightedPlayer>> CalculateWeightedScores(List<PlayerSummaryModel> players,
@@ -487,6 +540,9 @@ namespace SteamPlayerInvestigator
                 PlayerSummaryModel[] playerSummaries = await Task.WhenAll(playerTasks);
                 increment = 0;
                 // TODO Hold this data until we can confirm fof list is complete
+                // We could split our "gathering" and DB insert into different methods for friends and fof with would solve
+                // the above problem.
+                // other things to consider as well, dont add main user until we have al data
                 foreach (PlayerSummaryModel currPlayer in playerSummaries)
                 {
                     if (currPlayer != null)
@@ -593,10 +649,9 @@ namespace SteamPlayerInvestigator
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             // TODO Move away from static/single instance variables/methods here so that we can reuse button_click
-            // for example AvailableAccounts might be a problem
-            // data context for debugging listbox is also a problem re: instancing
-            // Can prolly just empty WeightedPlayers since it's global scope, but maybe find a better solution
+            // TODO also stop our foreach (friend and fof gathering) on button click for reuse
 
+            // for buton_click reuse
             WeightedPlayers.Clear();
 
             // need to convert steamiD to ulong for steamInterface
