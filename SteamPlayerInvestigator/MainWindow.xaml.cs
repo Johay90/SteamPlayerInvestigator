@@ -13,7 +13,6 @@ using System.Data;
 using System.Threading.Tasks;
 using System.ComponentModel;
 using Microsoft.ML;
-using Microsoft.ML.MultiClass;
 
 namespace SteamPlayerInvestigator
 {
